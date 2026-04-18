@@ -1,0 +1,2336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LifeOS Tracker — Personal Discipline Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+/* ============================================================
+   RESET & BASE
+============================================================ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Outfit',sans-serif;
+  background:#030712;
+  color:#f1f5f9;
+  min-height:100vh;
+  overflow-x:hidden;
+  line-height:1.6;
+}
+:root{
+  --bg0:#030712;
+  --bg1:#0a0f1e;
+  --bg2:#0f172a;
+  --bg3:#1e293b;
+  --bg4:#263348;
+  --glass:rgba(255,255,255,0.04);
+  --glass2:rgba(255,255,255,0.08);
+  --border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.13);
+  --border3:rgba(255,255,255,0.2);
+  --cyan:#22d3ee;
+  --cyan-dim:#0891b2;
+  --purple:#a855f7;
+  --purple-dim:#7c3aed;
+  --emerald:#10b981;
+  --amber:#f59e0b;
+  --rose:#f43f5e;
+  --blue:#3b82f6;
+  --t1:#f8fafc;
+  --t2:#cbd5e1;
+  --t3:#64748b;
+  --t4:#334155;
+  --r:12px;
+  --r2:16px;
+  --r3:20px;
+  --shadow:0 25px 50px -12px rgba(0,0,0,0.6);
+  --glow-cyan:0 0 30px rgba(34,211,238,0.15);
+  --glow-purple:0 0 30px rgba(168,85,247,0.15);
+}
+
+/* ============================================================
+   SCROLLBAR
+============================================================ */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg0)}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:var(--t4)}
+
+/* ============================================================
+   SIDEBAR
+============================================================ */
+.app-shell{display:flex;min-height:100vh}
+
+.sidebar{
+  width:240px;
+  min-height:100vh;
+  background:var(--bg1);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  padding:24px 16px;
+  position:fixed;
+  top:0;left:0;
+  z-index:100;
+  transition:transform 0.3s ease;
+}
+
+.sidebar-logo{
+  display:flex;align-items:center;gap:10px;
+  padding:0 8px;margin-bottom:32px;
+}
+.logo-icon{
+  width:36px;height:36px;
+  background:linear-gradient(135deg,var(--cyan-dim),var(--purple-dim));
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;
+}
+.logo-text{
+  font-size:18px;font-weight:800;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:-0.5px;
+}
+
+.sidebar-section{
+  font-size:10px;font-weight:600;
+  color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;
+  padding:0 10px;margin:16px 0 8px;
+}
+
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:var(--r);
+  cursor:pointer;transition:all 0.2s;
+  font-size:14px;font-weight:500;color:var(--t3);
+  border:1px solid transparent;margin-bottom:2px;
+  background:transparent;width:100%;text-align:left;
+}
+.nav-item:hover{
+  background:var(--glass);color:var(--t2);
+  border-color:var(--border);
+}
+.nav-item.active{
+  background:linear-gradient(135deg,rgba(34,211,238,0.12),rgba(168,85,247,0.08));
+  color:var(--t1);border-color:rgba(34,211,238,0.25);
+  box-shadow:var(--glow-cyan);
+}
+.nav-item.active .nav-icon{color:var(--cyan)}
+.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{
+  margin-left:auto;background:var(--cyan-dim);color:#fff;
+  font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;
+}
+
+.sidebar-footer{
+  margin-top:auto;padding-top:16px;
+  border-top:1px solid var(--border);
+}
+.user-card{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:var(--r);
+  background:var(--glass);border:1px solid var(--border);
+}
+.user-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cyan-dim),var(--purple-dim));
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.user-name{font-size:13px;font-weight:600;color:var(--t1)}
+.user-role{font-size:11px;color:var(--t3)}
+
+/* ============================================================
+   MAIN CONTENT
+============================================================ */
+.main{
+  margin-left:240px;
+  flex:1;
+  min-height:100vh;
+  display:flex;flex-direction:column;
+}
+
+/* ============================================================
+   TOP BAR
+============================================================ */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 32px;
+  background:var(--bg1);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:blur(20px);
+}
+.topbar-left{display:flex;flex-direction:column;gap:2px}
+.topbar-title{font-size:20px;font-weight:700;color:var(--t1)}
+.topbar-sub{font-size:13px;color:var(--t3)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.clock-widget{
+  display:flex;flex-direction:column;align-items:flex-end;
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:var(--r);padding:8px 14px;
+}
+.clock-time{
+  font-family:'JetBrains Mono',monospace;
+  font-size:15px;font-weight:500;color:var(--cyan);
+  letter-spacing:1px;
+}
+.clock-date{font-size:11px;color:var(--t3)}
+.hamburger{
+  display:none;background:var(--glass);border:1px solid var(--border);
+  padding:8px 10px;border-radius:var(--r);cursor:pointer;font-size:16px;
+  color:var(--t2);
+}
+
+/* ============================================================
+   PAGE SECTIONS
+============================================================ */
+.page{display:none;padding:28px 32px;animation:fadeUp 0.35s ease forwards}
+.page.active{display:block}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(16px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ============================================================
+   GRID SYSTEMS
+============================================================ */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+.grid-1-2{display:grid;grid-template-columns:1fr 2fr;gap:20px}
+
+@media(max-width:1200px){
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  .grid-3{grid-template-columns:repeat(2,1fr)}
+  .grid-2-1,.grid-1-2{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .hamburger{display:flex}
+  .page{padding:20px 16px}
+  .topbar{padding:14px 16px}
+  .grid-4,.grid-3,.grid-2{grid-template-columns:1fr}
+}
+
+/* ============================================================
+   CARDS
+============================================================ */
+.card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  padding:22px;
+  transition:border-color 0.2s,transform 0.2s;
+}
+.card:hover{border-color:var(--border2)}
+.card-sm{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px;
+}
+.card-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;
+}
+.card-title{
+  font-size:13px;font-weight:600;color:var(--t3);
+  text-transform:uppercase;letter-spacing:1.2px;
+}
+.card-action{
+  font-size:12px;color:var(--cyan);cursor:pointer;
+  font-weight:500;text-decoration:none;
+  background:rgba(34,211,238,0.08);
+  padding:4px 10px;border-radius:99px;
+  border:1px solid rgba(34,211,238,0.2);
+}
+
+/* ============================================================
+   STAT CARDS
+============================================================ */
+.stat-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r2);padding:20px;
+  position:relative;overflow:hidden;
+  transition:all 0.25s;
+}
+.stat-card:hover{
+  border-color:var(--border2);
+  transform:translateY(-2px);
+  box-shadow:var(--shadow);
+}
+.stat-card::before{
+  content:'';position:absolute;top:0;right:0;
+  width:80px;height:80px;
+  border-radius:0 var(--r2) 0 80px;
+  opacity:0.12;transition:opacity 0.2s;
+}
+.stat-card:hover::before{opacity:0.2}
+.stat-card.cyan::before{background:var(--cyan)}
+.stat-card.purple::before{background:var(--purple)}
+.stat-card.emerald::before{background:var(--emerald)}
+.stat-card.amber::before{background:var(--amber)}
+.stat-card.rose::before{background:var(--rose)}
+.stat-label{font-size:12px;color:var(--t3);font-weight:500;margin-bottom:8px}
+.stat-value{
+  font-size:32px;font-weight:800;color:var(--t1);
+  line-height:1;letter-spacing:-1px;
+}
+.stat-unit{font-size:16px;font-weight:600;color:var(--t2)}
+.stat-footer{
+  display:flex;align-items:center;gap:6px;margin-top:12px;
+  font-size:12px;color:var(--t3);
+}
+.stat-delta{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:11px;font-weight:600;padding:2px 8px;
+  border-radius:99px;
+}
+.delta-up{background:rgba(16,185,129,0.12);color:var(--emerald)}
+.delta-down{background:rgba(244,63,94,0.12);color:var(--rose)}
+.delta-neutral{background:rgba(245,158,11,0.12);color:var(--amber)}
+
+/* ============================================================
+   PROGRESS BARS
+============================================================ */
+.progress-track{
+  background:var(--bg4);border-radius:99px;
+  overflow:hidden;position:relative;
+}
+.progress-fill{
+  height:100%;border-radius:99px;
+  transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1);
+  position:relative;
+}
+.progress-fill.cyan{background:linear-gradient(90deg,var(--cyan-dim),var(--cyan))}
+.progress-fill.purple{background:linear-gradient(90deg,var(--purple-dim),var(--purple))}
+.progress-fill.emerald{background:linear-gradient(90deg,#059669,var(--emerald))}
+.progress-fill.amber{background:linear-gradient(90deg,#d97706,var(--amber))}
+.progress-fill.rose{background:linear-gradient(90deg,#e11d48,var(--rose))}
+.progress-fill.blue{background:linear-gradient(90deg,#2563eb,var(--blue))}
+.progress-fill::after{
+  content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.15) 50%,transparent 100%);
+  animation:shimmer 2.5s infinite;
+}
+@keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+
+/* ============================================================
+   BUTTONS
+============================================================ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 20px;border-radius:var(--r);
+  font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;
+  cursor:pointer;transition:all 0.2s;border:none;
+  white-space:nowrap;
+}
+.btn:active{transform:scale(0.97)}
+.btn-primary{
+  background:linear-gradient(135deg,var(--cyan-dim),var(--cyan));
+  color:#030712;box-shadow:0 4px 14px rgba(34,211,238,0.3);
+}
+.btn-primary:hover{filter:brightness(1.1);box-shadow:0 6px 20px rgba(34,211,238,0.4)}
+.btn-secondary{
+  background:var(--glass2);border:1px solid var(--border2);color:var(--t2);
+}
+.btn-secondary:hover{background:var(--glass);color:var(--t1);border-color:var(--border3)}
+.btn-danger{
+  background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.25);
+  color:var(--rose);
+}
+.btn-danger:hover{background:rgba(244,63,94,0.2)}
+.btn-success{
+  background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);
+  color:var(--emerald);
+}
+.btn-success:hover{background:rgba(16,185,129,0.2)}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:8px}
+.btn-xs{padding:4px 10px;font-size:11px;border-radius:6px}
+.btn-icon{padding:8px;border-radius:8px;background:var(--glass);border:1px solid var(--border);color:var(--t2)}
+.btn-icon:hover{color:var(--t1);border-color:var(--border2)}
+.btn-full{width:100%}
+
+/* ============================================================
+   FORMS
+============================================================ */
+.form-group{margin-bottom:16px}
+.form-label{
+  display:block;font-size:12px;font-weight:600;color:var(--t2);
+  margin-bottom:6px;letter-spacing:0.3px;
+}
+.form-input,.form-select,.form-textarea{
+  width:100%;background:var(--bg3);
+  border:1px solid var(--border);border-radius:var(--r);
+  padding:11px 14px;color:var(--t1);
+  font-family:'Outfit',sans-serif;font-size:14px;
+  outline:none;transition:all 0.2s;
+  -webkit-appearance:none;
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus{
+  border-color:var(--cyan);
+  box-shadow:0 0 0 3px rgba(34,211,238,0.1);
+  background:var(--bg2);
+}
+.form-input::placeholder{color:var(--t4)}
+.form-select{cursor:pointer}
+.form-select option{background:var(--bg2)}
+.form-textarea{resize:vertical;min-height:80px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.form-row{grid-template-columns:1fr}}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:640px){.form-row-3{grid-template-columns:1fr}}
+
+/* ============================================================
+   BADGES / CHIPS / TAGS
+============================================================ */
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:600;padding:3px 10px;
+  border-radius:99px;white-space:nowrap;
+}
+.badge-cyan{background:rgba(34,211,238,0.12);color:var(--cyan);border:1px solid rgba(34,211,238,0.2)}
+.badge-purple{background:rgba(168,85,247,0.12);color:var(--purple);border:1px solid rgba(168,85,247,0.2)}
+.badge-emerald{background:rgba(16,185,129,0.12);color:var(--emerald);border:1px solid rgba(16,185,129,0.2)}
+.badge-amber{background:rgba(245,158,11,0.12);color:var(--amber);border:1px solid rgba(245,158,11,0.2)}
+.badge-rose{background:rgba(244,63,94,0.12);color:var(--rose);border:1px solid rgba(244,63,94,0.2)}
+.badge-blue{background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.2)}
+.badge-gray{background:rgba(100,116,139,0.15);color:var(--t3);border:1px solid var(--border)}
+
+/* ============================================================
+   STATUS LABELS
+============================================================ */
+.status-done{background:rgba(16,185,129,0.1);color:var(--emerald);border:1px solid rgba(16,185,129,0.2);font-size:11px;padding:3px 10px;border-radius:99px;font-weight:600}
+.status-progress{background:rgba(245,158,11,0.1);color:var(--amber);border:1px solid rgba(245,158,11,0.2);font-size:11px;padding:3px 10px;border-radius:99px;font-weight:600}
+.status-todo{background:rgba(100,116,139,0.1);color:var(--t3);border:1px solid var(--border);font-size:11px;padding:3px 10px;border-radius:99px;font-weight:600}
+
+/* ============================================================
+   LIST ITEMS
+============================================================ */
+.list-item{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r);margin-bottom:8px;
+  transition:all 0.2s;
+}
+.list-item:hover{border-color:var(--border2);background:var(--bg4)}
+.list-item-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+  box-shadow:0 0 8px currentColor;
+}
+.list-item-content{flex:1;min-width:0}
+.list-item-title{font-size:14px;font-weight:600;color:var(--t1)}
+.list-item-meta{font-size:12px;color:var(--t3);margin-top:2px}
+.list-item-actions{display:flex;gap:6px;flex-shrink:0}
+
+/* ============================================================
+   INLINE TABS
+============================================================ */
+.tab-bar{
+  display:flex;gap:4px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r);padding:4px;
+  margin-bottom:20px;overflow-x:auto;flex-wrap:nowrap;
+}
+.tab-btn{
+  flex:1;min-width:fit-content;
+  padding:8px 16px;border-radius:8px;
+  font-size:13px;font-weight:500;color:var(--t3);
+  background:transparent;border:none;cursor:pointer;
+  transition:all 0.2s;white-space:nowrap;
+}
+.tab-btn.active{
+  background:var(--bg2);color:var(--t1);
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
+}
+.tab-btn:hover:not(.active){color:var(--t2)}
+
+/* ============================================================
+   HEATMAP
+============================================================ */
+.heatmap-grid{display:grid;grid-template-columns:repeat(13,1fr);gap:3px}
+.heatmap-cell{
+  aspect-ratio:1;border-radius:3px;cursor:pointer;
+  transition:all 0.15s;
+}
+.heatmap-cell:hover{transform:scale(1.4);z-index:1;position:relative}
+.h0{background:var(--bg4)}
+.h1{background:rgba(34,211,238,0.18)}
+.h2{background:rgba(34,211,238,0.38)}
+.h3{background:rgba(34,211,238,0.62)}
+.h4{background:rgba(34,211,238,0.88)}
+
+/* ============================================================
+   INSIGHT CARDS
+============================================================ */
+.insight-card{
+  display:flex;gap:14px;align-items:flex-start;
+  padding:14px 16px;
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:var(--r);margin-bottom:10px;
+  transition:all 0.2s;
+}
+.insight-card:hover{border-color:var(--border2);background:var(--glass2)}
+.insight-icon{font-size:20px;flex-shrink:0;line-height:1;margin-top:1px}
+.insight-body{}
+.insight-title{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:3px}
+.insight-text{font-size:12px;color:var(--t3);line-height:1.5}
+
+/* ============================================================
+   STREAK
+============================================================ */
+.streak-container{
+  display:flex;flex-direction:column;align-items:center;
+  padding:24px;text-align:center;
+}
+.streak-fire{font-size:48px;line-height:1;margin-bottom:8px;animation:bounceEmoji 2s ease infinite}
+@keyframes bounceEmoji{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.streak-number{
+  font-size:64px;font-weight:900;line-height:1;
+  background:linear-gradient(135deg,var(--amber),#f97316);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.streak-label{font-size:13px;color:var(--t3);margin-top:4px}
+
+/* ============================================================
+   QUOTE BANNER
+============================================================ */
+.quote-banner{
+  background:linear-gradient(135deg,rgba(34,211,238,0.06),rgba(168,85,247,0.06));
+  border:1px solid rgba(34,211,238,0.12);
+  border-radius:var(--r2);padding:18px 22px;
+  margin-bottom:24px;
+  display:flex;align-items:flex-start;gap:14px;
+}
+.quote-mark{
+  font-size:40px;color:var(--cyan);opacity:0.4;
+  font-family:Georgia,serif;line-height:0.8;flex-shrink:0;
+  margin-top:4px;
+}
+.quote-text{font-size:14px;color:var(--t2);line-height:1.7;font-style:italic}
+.quote-author{font-size:12px;color:var(--t3);margin-top:4px;font-style:normal;font-weight:600}
+
+/* ============================================================
+   ALERT / NOTIFICATION
+============================================================ */
+.alert{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:12px 16px;border-radius:var(--r);
+  font-size:13px;margin-bottom:10px;
+}
+.alert-amber{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);color:var(--amber)}
+.alert-cyan{background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.2);color:var(--cyan)}
+.alert-emerald{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:var(--emerald)}
+.alert-rose{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);color:var(--rose)}
+
+/* ============================================================
+   WORKOUT CARD
+============================================================ */
+.workout-entry{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r2);padding:16px 18px;margin-bottom:10px;
+  transition:all 0.2s;
+}
+.workout-entry:hover{border-color:var(--border2)}
+.workout-entry-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.workout-entry-name{font-size:15px;font-weight:700;color:var(--t1)}
+.workout-entry-meta{font-size:12px;color:var(--t3);margin-top:2px}
+.workout-chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{
+  background:var(--bg4);border:1px solid var(--border);
+  border-radius:8px;padding:5px 12px;
+  font-size:12px;font-weight:500;color:var(--t2);
+}
+
+/* ============================================================
+   GOAL ITEM
+============================================================ */
+.goal-item{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r2);padding:16px 18px;margin-bottom:10px;
+  transition:all 0.2s;
+}
+.goal-item:hover{border-color:var(--border2)}
+.goal-item-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.goal-item-title{font-size:14px;font-weight:600;color:var(--t1)}
+.goal-item-meta{font-size:12px;color:var(--t3);margin-top:2px}
+.goal-pct{font-size:20px;font-weight:800;color:var(--cyan);white-space:nowrap}
+
+/* ============================================================
+   CHAPTER ITEM
+============================================================ */
+.chapter-item{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r2);padding:16px 18px;margin-bottom:10px;
+  transition:all 0.2s;
+}
+.chapter-item:hover{border-color:var(--border2)}
+.chapter-item-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:10px}
+.chapter-subject-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.chapter-name{font-size:14px;font-weight:600;color:var(--t1)}
+.chapter-meta{font-size:12px;color:var(--t3);margin-top:3px}
+.chapter-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+
+/* ============================================================
+   TABLE
+============================================================ */
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{
+  text-align:left;padding:10px 14px;
+  font-size:11px;font-weight:600;color:var(--t3);
+  text-transform:uppercase;letter-spacing:0.8px;
+  border-bottom:1px solid var(--border);white-space:nowrap;
+}
+.data-table td{
+  padding:12px 14px;border-bottom:1px solid var(--border);
+  color:var(--t1);vertical-align:middle;
+}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--glass)}
+
+/* ============================================================
+   SUBJECT COLORS
+============================================================ */
+.subj-history{color:#22d3ee}
+.subj-polity{color:#a855f7}
+.subj-maths{color:#f59e0b}
+.subj-english{color:#10b981}
+.subj-reasoning{color:#ec4899}
+.subj-geography{color:#22c55e}
+.subj-economics{color:#3b82f6}
+.subj-science{color:#f97316}
+.subj-gk{color:#e879f9}
+
+.dot-history{background:#22d3ee}
+.dot-polity{background:#a855f7}
+.dot-maths{background:#f59e0b}
+.dot-english{background:#10b981}
+.dot-reasoning{background:#ec4899}
+.dot-geography{background:#22c55e}
+.dot-economics{background:#3b82f6}
+.dot-science{background:#f97316}
+.dot-gk{background:#e879f9}
+
+/* ============================================================
+   MISC
+============================================================ */
+.divider{height:1px;background:var(--border);margin:20px 0}
+.section-gap{margin-bottom:24px}
+.flex{display:flex}
+.flex-col{display:flex;flex-direction:column}
+.items-center{align-items:center}
+.items-start{align-items:flex-start}
+.justify-between{justify-content:space-between}
+.justify-center{justify-content:center}
+.gap-2{gap:8px}
+.gap-3{gap:12px}
+.gap-4{gap:16px}
+.mb-1{margin-bottom:4px}
+.mb-2{margin-bottom:8px}
+.mb-3{margin-bottom:12px}
+.mb-4{margin-bottom:16px}
+.mb-5{margin-bottom:20px}
+.mb-6{margin-bottom:24px}
+.mt-2{margin-top:8px}
+.mt-3{margin-top:12px}
+.mt-4{margin-top:16px}
+.text-sm{font-size:13px}
+.text-xs{font-size:12px}
+.text-muted{color:var(--t3)}
+.text-t2{color:var(--t2)}
+.text-cyan{color:var(--cyan)}
+.text-emerald{color:var(--emerald)}
+.text-amber{color:var(--amber)}
+.text-rose{color:var(--rose)}
+.font-bold{font-weight:700}
+.font-black{font-weight:900}
+.w-full{width:100%}
+.hidden{display:none!important}
+.text-right{text-align:right}
+.text-center{text-align:center}
+
+/* ============================================================
+   OVERLAY / MODAL
+============================================================ */
+.overlay{
+  position:fixed;inset:0;background:rgba(3,7,18,0.7);
+  z-index:200;display:none;align-items:center;justify-content:center;
+  padding:20px;backdrop-filter:blur(8px);
+}
+.overlay.show{display:flex}
+.modal{
+  background:var(--bg1);border:1px solid var(--border2);
+  border-radius:var(--r3);padding:28px;
+  width:100%;max-width:480px;
+  max-height:90vh;overflow-y:auto;
+  animation:modalIn 0.25s ease forwards;
+}
+@keyframes modalIn{from{opacity:0;transform:scale(0.93) translateY(-10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.modal-title{font-size:18px;font-weight:700;color:var(--t1)}
+.modal-close{
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:8px;padding:6px 10px;font-size:16px;cursor:pointer;color:var(--t3);
+}
+.modal-close:hover{color:var(--t1)}
+
+/* ============================================================
+   SIDEBAR OVERLAY (mobile)
+============================================================ */
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);
+  z-index:90;
+}
+.sidebar-overlay.show{display:block}
+
+/* ============================================================
+   LOADING SCREEN
+============================================================ */
+.loading-screen{
+  position:fixed;inset:0;background:var(--bg0);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:999;transition:opacity 0.5s;
+}
+.loading-screen.hidden{opacity:0;pointer-events:none}
+.loading-logo{
+  font-size:40px;font-weight:900;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:16px;
+}
+.loading-bar{
+  width:200px;height:3px;background:var(--bg4);
+  border-radius:99px;overflow:hidden;
+}
+.loading-fill{
+  height:100%;background:linear-gradient(90deg,var(--cyan-dim),var(--cyan));
+  border-radius:99px;animation:loadFill 1.8s ease forwards;
+}
+@keyframes loadFill{from{width:0}to{width:100%}}
+.loading-text{font-size:13px;color:var(--t3);margin-top:12px}
+
+/* ============================================================
+   TOAST
+============================================================ */
+.toast-container{
+  position:fixed;bottom:24px;right:24px;
+  display:flex;flex-direction:column;gap:8px;z-index:9999;
+}
+.toast{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:var(--r);padding:12px 18px;
+  font-size:13px;font-weight:500;color:var(--t1);
+  box-shadow:var(--shadow);min-width:240px;
+  display:flex;align-items:center;gap:10px;
+  animation:toastIn 0.3s ease;
+}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.toast.success{border-left:3px solid var(--emerald)}
+.toast.error{border-left:3px solid var(--rose)}
+.toast.info{border-left:3px solid var(--cyan)}
+.toast.warning{border-left:3px solid var(--amber)}
+
+/* ============================================================
+   CHART CONTAINERS
+============================================================ */
+.chart-container{position:relative;width:100%}
+
+/* ============================================================
+   EMPTY STATE
+============================================================ */
+.empty-state{
+  text-align:center;padding:48px 20px;
+  color:var(--t3);
+}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:0.5}
+.empty-title{font-size:15px;font-weight:600;color:var(--t2);margin-bottom:6px}
+.empty-sub{font-size:13px;color:var(--t3)}
+
+/* ============================================================
+   ANALYTICS REPORT
+============================================================ */
+.report-row{
+  display:flex;align-items:center;
+  padding:12px 0;border-bottom:1px solid var(--border);
+}
+.report-row:last-child{border-bottom:none}
+.report-day{font-size:13px;font-weight:600;color:var(--t2);width:80px;flex-shrink:0}
+.report-bars{flex:1;display:flex;flex-direction:column;gap:4px;margin:0 16px}
+.report-bar-row{display:flex;align-items:center;gap:8px}
+.report-bar-label{font-size:11px;color:var(--t3);width:50px;flex-shrink:0}
+.report-bar-track{flex:1;background:var(--bg4);border-radius:99px;height:6px;overflow:hidden}
+.report-bar-fill{height:100%;border-radius:99px}
+.report-val{font-size:12px;color:var(--t3);width:40px;text-align:right;flex-shrink:0}
+
+/* ============================================================
+   MOTIVATIONAL LIVE DOT
+============================================================ */
+.live-indicator{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--emerald);font-weight:500;
+}
+.live-dot{
+  width:7px;height:7px;background:var(--emerald);
+  border-radius:50%;animation:livePulse 2s infinite;
+}
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.8)}}
+
+/* ============================================================
+   FOCUS TIMER
+============================================================ */
+.timer-display{
+  font-family:'JetBrains Mono',monospace;
+  font-size:56px;font-weight:400;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  text-align:center;line-height:1;
+}
+.timer-label{font-size:13px;color:var(--t3);text-align:center;margin-top:8px}
+.timer-controls{display:flex;justify-content:center;gap:12px;margin-top:20px}
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-logo">⚡ LifeOS</div>
+  <div class="loading-bar"><div class="loading-fill"></div></div>
+  <div class="loading-text">Loading your command center...</div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- APP SHELL -->
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-text">LifeOS</div>
+    </div>
+
+    <div class="sidebar-section">Main</div>
+    <button class="nav-item active" onclick="navigate('dashboard',this)">
+      <span class="nav-icon">🏠</span> Dashboard
+    </button>
+
+    <div class="sidebar-section">Productivity</div>
+    <button class="nav-item" onclick="navigate('study',this)">
+      <span class="nav-icon">📚</span> Study Tracker
+    </button>
+    <button class="nav-item" onclick="navigate('fitness',this)">
+      <span class="nav-icon">💪</span> Fitness
+    </button>
+    <button class="nav-item" onclick="navigate('goals',this)">
+      <span class="nav-icon">🎯</span> Goals
+      <span class="nav-badge" id="goalsBadge">0</span>
+    </button>
+    <button class="nav-item" onclick="navigate('timer',this)">
+      <span class="nav-icon">⏱️</span> Focus Timer
+    </button>
+
+    <div class="sidebar-section">Reports</div>
+    <button class="nav-item" onclick="navigate('analytics',this)">
+      <span class="nav-icon">📈</span> Analytics
+    </button>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar">V</div>
+        <div>
+          <div class="user-name">Vinay Singh</div>
+          <div class="user-role">SSC CGL Aspirant</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title" id="pageTitle">Dashboard</div>
+        <div class="topbar-sub" id="pageSubtitle">Your personal command center</div>
+      </div>
+      <div class="topbar-right">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <div class="clock-widget">
+          <div class="clock-time" id="topClock">00:00:00</div>
+          <div class="clock-date" id="topDate">Loading...</div>
+        </div>
+        <div class="live-indicator">
+          <div class="live-dot"></div>
+          <span>Live</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ========================= DASHBOARD ========================= -->
+    <section class="page active" id="page-dashboard">
+      <div class="quote-banner mb-6" id="quoteBanner">
+        <div class="quote-mark">"</div>
+        <div>
+          <div class="quote-text" id="quoteText">Discipline is the bridge between goals and accomplishment.</div>
+          <div class="quote-author" id="quoteAuthor">— Jim Rohn</div>
+        </div>
+      </div>
+
+      <div id="dashAlerts" class="mb-4"></div>
+
+      <!-- Stats Row -->
+      <div class="grid-4 mb-6" id="dashStats"></div>
+
+      <!-- Charts + Insights -->
+      <div class="grid-2 mb-6">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Weekly Activity</div>
+            <span class="badge badge-cyan">This Week</span>
+          </div>
+          <div class="chart-container" style="height:200px">
+            <canvas id="weekChart" role="img" aria-label="Weekly study and fitness activity bar chart">Weekly activity data</canvas>
+          </div>
+          <div class="flex gap-4 mt-3">
+            <span class="text-xs text-muted flex items-center gap-2"><span style="width:10px;height:10px;background:var(--cyan);border-radius:2px;display:inline-block"></span>Study hrs</span>
+            <span class="text-xs text-muted flex items-center gap-2"><span style="width:10px;height:10px;background:var(--purple);border-radius:2px;display:inline-block"></span>Workout min</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">AI Insights</div>
+            <span class="badge badge-purple">Smart</span>
+          </div>
+          <div id="dashInsights"></div>
+        </div>
+      </div>
+
+      <!-- Heatmap + Today Tasks -->
+      <div class="grid-2 mb-6">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Consistency Heatmap</div>
+            <span class="text-xs text-muted">Last 3 months</span>
+          </div>
+          <div class="heatmap-grid" id="heatmap"></div>
+          <div class="flex items-center gap-2 mt-3">
+            <span class="text-xs text-muted">Less</span>
+            <div class="heatmap-cell h0" style="width:12px;height:12px;flex-shrink:0"></div>
+            <div class="heatmap-cell h1" style="width:12px;height:12px;flex-shrink:0"></div>
+            <div class="heatmap-cell h2" style="width:12px;height:12px;flex-shrink:0"></div>
+            <div class="heatmap-cell h3" style="width:12px;height:12px;flex-shrink:0"></div>
+            <div class="heatmap-cell h4" style="width:12px;height:12px;flex-shrink:0"></div>
+            <span class="text-xs text-muted">More</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Today's Targets</div>
+            <button class="card-action" onclick="navigate('goals',document.querySelector('[onclick*=goals]'))">View All</button>
+          </div>
+          <div id="dashTodayTasks"></div>
+        </div>
+      </div>
+
+      <!-- Subject Distribution -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Subject Progress</div>
+          </div>
+          <div id="dashSubjectProgress"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Subject Distribution</div>
+          </div>
+          <div class="chart-container" style="height:220px">
+            <canvas id="pieChart" role="img" aria-label="Pie chart showing subject distribution by PYQs solved">Subject distribution</canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= STUDY TRACKER ========================= -->
+    <section class="page" id="page-study">
+      <div class="grid-3 mb-6" id="studyStats"></div>
+
+      <div class="grid-2">
+        <!-- Left: Add + Progress -->
+        <div>
+          <div class="card mb-5">
+            <div class="card-header">
+              <div class="card-title">Add Chapter</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Subject</label>
+              <select class="form-select" id="sSubject">
+                <option>History</option><option>Polity</option><option>Geography</option>
+                <option>Maths</option><option>Reasoning</option><option>English</option>
+                <option>Economics</option><option>Science</option><option>GK</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Chapter Name</label>
+              <input class="form-input" id="sChapter" placeholder="e.g. Modern India — Freedom Struggle">
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="margin:0">
+                <label class="form-label">PYQs Target</label>
+                <input class="form-input" id="sPyqs" type="number" placeholder="50" min="1">
+              </div>
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Target Days</label>
+                <input class="form-input" id="sDays" type="number" placeholder="7" min="1">
+              </div>
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label">Notes (optional)</label>
+              <input class="form-input" id="sNotes" placeholder="Focus areas, difficulty level...">
+            </div>
+            <button class="btn btn-primary btn-full mt-3" onclick="addChapter()">
+              + Add Chapter
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Subject-wise Progress</div>
+            </div>
+            <div id="studySubjectBars"></div>
+          </div>
+        </div>
+
+        <!-- Right: Chapter List -->
+        <div>
+          <div class="tab-bar">
+            <button class="tab-btn active" onclick="filterStudy('All',this)">All</button>
+            <button class="tab-btn" onclick="filterStudy('History',this)">History</button>
+            <button class="tab-btn" onclick="filterStudy('Polity',this)">Polity</button>
+            <button class="tab-btn" onclick="filterStudy('Maths',this)">Maths</button>
+            <button class="tab-btn" onclick="filterStudy('English',this)">English</button>
+            <button class="tab-btn" onclick="filterStudy('Reasoning',this)">Reasoning</button>
+          </div>
+          <div id="chaptersList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= FITNESS ========================= -->
+    <section class="page" id="page-fitness">
+      <div class="grid-3 mb-6" id="fitStats"></div>
+
+      <div class="grid-2">
+        <!-- Left: Log -->
+        <div>
+          <div class="card mb-5">
+            <div class="card-header">
+              <div class="card-title">Log Workout</div>
+              <span class="badge badge-emerald">Today</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Exercise Name</label>
+              <input class="form-input" id="fName" placeholder="Bench Press, Squats, Running...">
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Type</label>
+                <select class="form-select" id="fType">
+                  <option>Strength</option><option>Cardio</option>
+                  <option>Flexibility</option><option>Sports</option><option>Bodyweight</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Muscle Group</label>
+                <select class="form-select" id="fMuscle">
+                  <option>Chest</option><option>Back</option><option>Legs</option>
+                  <option>Shoulders</option><option>Arms</option><option>Core</option>
+                  <option>Full Body</option><option>Cardio</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-3">
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Sets</label>
+                <input class="form-input" id="fSets" type="number" placeholder="4" min="1">
+              </div>
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Reps/Min</label>
+                <input class="form-input" id="fReps" type="number" placeholder="12" min="1">
+              </div>
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Weight (kg)</label>
+                <input class="form-input" id="fWeight" type="number" placeholder="70" min="0">
+              </div>
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label">Notes</label>
+              <input class="form-input" id="fNotes" placeholder="Personal best, form notes...">
+            </div>
+            <button class="btn btn-primary btn-full mt-3" onclick="addWorkout()">
+              + Log Exercise
+            </button>
+          </div>
+
+          <!-- Weekly volume chart -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Weekly Volume</div>
+            </div>
+            <div class="chart-container" style="height:160px">
+              <canvas id="fitWeekChart" role="img" aria-label="Weekly fitness volume bar chart">Weekly fitness activity</canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Log List -->
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Workout Log</div>
+              <span class="text-xs text-muted" id="fitCount">0 sessions</span>
+            </div>
+            <div id="workoutList"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= GOALS ========================= -->
+    <section class="page" id="page-goals">
+      <div class="grid-4 mb-6">
+        <div class="card text-center" style="border-color:rgba(245,158,11,0.2)">
+          <div class="streak-container" style="padding:16px">
+            <div class="streak-fire">🔥</div>
+            <div class="streak-number" id="streakNum">0</div>
+            <div class="streak-label">Day Streak</div>
+          </div>
+        </div>
+        <div class="stat-card cyan">
+          <div class="stat-label">Today Completed</div>
+          <div class="stat-value" id="todayDone">0</div>
+          <div class="stat-footer">of <span id="todayTotal">0</span> daily goals</div>
+        </div>
+        <div class="stat-card emerald">
+          <div class="stat-label">Weekly Progress</div>
+          <div class="stat-value" id="weeklyGoalPct">0<span class="stat-unit">%</span></div>
+          <div class="stat-footer">weekly targets</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-label">Monthly Milestones</div>
+          <div class="stat-value" id="monthlyGoalDone">0</div>
+          <div class="stat-footer">completed this month</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Add Goal -->
+        <div>
+          <div class="card mb-5">
+            <div class="card-header">
+              <div class="card-title">Add New Goal</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Goal Title</label>
+              <input class="form-input" id="gTitle" placeholder="e.g. Study 3 hours today">
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Category</label>
+                <select class="form-select" id="gCat">
+                  <option>Study</option><option>Fitness</option>
+                  <option>Personal</option><option>Career</option><option>Health</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Period</label>
+                <select class="form-select" id="gType">
+                  <option>Daily</option><option>Weekly</option><option>Monthly</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Target Value</label>
+                <input class="form-input" id="gTarget" type="number" placeholder="e.g. 3" min="1">
+              </div>
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Unit</label>
+                <input class="form-input" id="gUnit" placeholder="hours, pages, reps">
+              </div>
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label">Priority</label>
+              <select class="form-select" id="gPriority">
+                <option>High</option><option>Medium</option><option>Low</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-full mt-3" onclick="addGoal()">+ Add Goal</button>
+          </div>
+
+          <!-- Update Progress -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Quick Update Progress</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Select Goal</label>
+              <select class="form-select" id="progressGoalSelect"></select>
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label">Current Progress</label>
+              <input class="form-input" type="number" id="progressValue" placeholder="Enter current value" min="0">
+            </div>
+            <button class="btn btn-secondary btn-full mt-3" onclick="updateGoalProgress()">Update Progress</button>
+          </div>
+        </div>
+
+        <!-- Goals List -->
+        <div>
+          <div class="tab-bar">
+            <button class="tab-btn active" onclick="filterGoals('Daily',this)">Daily</button>
+            <button class="tab-btn" onclick="filterGoals('Weekly',this)">Weekly</button>
+            <button class="tab-btn" onclick="filterGoals('Monthly',this)">Monthly</button>
+            <button class="tab-btn" onclick="filterGoals('All',this)">All</button>
+          </div>
+          <div id="goalsList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= TIMER ========================= -->
+    <section class="page" id="page-timer">
+      <div class="grid-2">
+        <div class="card text-center" style="padding:40px">
+          <div class="text-xs text-muted mb-4" style="text-transform:uppercase;letter-spacing:1.5px">Focus Session</div>
+          <div class="timer-display" id="timerDisplay">25:00</div>
+          <div class="timer-label" id="timerLabel">Pomodoro — Stay focused</div>
+          <div class="timer-controls">
+            <button class="btn btn-secondary btn-sm" onclick="setTimer(25)">25 min</button>
+            <button class="btn btn-secondary btn-sm" onclick="setTimer(45)">45 min</button>
+            <button class="btn btn-secondary btn-sm" onclick="setTimer(60)">60 min</button>
+          </div>
+          <div class="timer-controls mt-3">
+            <button class="btn btn-primary" id="timerBtn" onclick="toggleTimer()">▶ Start</button>
+            <button class="btn btn-secondary" onclick="resetTimer()">↺ Reset</button>
+          </div>
+          <div class="mt-4">
+            <div class="progress-track" style="height:6px">
+              <div class="progress-fill cyan" id="timerProgress" style="width:100%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card mb-4">
+            <div class="card-header"><div class="card-title">Session Log</div></div>
+            <div id="timerLog">
+              <div class="empty-state">
+                <div class="empty-icon">⏱️</div>
+                <div class="empty-title">No sessions yet</div>
+                <div class="empty-sub">Start a focus session to track your time</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Today's Focus Stats</div></div>
+            <div class="grid-2" style="gap:12px">
+              <div class="card-sm text-center">
+                <div class="text-xs text-muted mb-1">Sessions</div>
+                <div style="font-size:28px;font-weight:800;color:var(--cyan)" id="timerSessions">0</div>
+              </div>
+              <div class="card-sm text-center">
+                <div class="text-xs text-muted mb-1">Total Minutes</div>
+                <div style="font-size:28px;font-weight:800;color:var(--purple)" id="timerMinutes">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= ANALYTICS ========================= -->
+    <section class="page" id="page-analytics">
+      <div class="grid-4 mb-6" id="analyticsStats"></div>
+
+      <div class="grid-2 mb-6">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Study Hours — Last 4 Weeks</div>
+          </div>
+          <div class="chart-container" style="height:220px">
+            <canvas id="studyLineChart" role="img" aria-label="Line chart showing study hours over last 4 weeks">Study hours trend</canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Fitness Activity — Last 4 Weeks</div>
+          </div>
+          <div class="chart-container" style="height:220px">
+            <canvas id="fitLineChart" role="img" aria-label="Line chart showing fitness activity over last 4 weeks">Fitness trend</canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2 mb-6">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Performance Score</div>
+          </div>
+          <div class="text-center" style="padding:30px 0">
+            <div style="font-size:80px;font-weight:900;line-height:1;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="perfScore">--</div>
+            <div class="text-sm text-muted mt-2">Overall Score / 100</div>
+            <div class="badge badge-cyan mt-3" id="perfBadge">Calculating...</div>
+          </div>
+          <div id="perfBreakdown"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Study vs Fitness Balance</div>
+          </div>
+          <div class="chart-container" style="height:220px">
+            <canvas id="balanceChart" role="img" aria-label="Radar chart showing study vs fitness balance">Balance chart</canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Weekly Performance Report</div>
+          <span class="badge badge-emerald">This Week</span>
+        </div>
+        <div id="weeklyReportTable"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// ===========================================================
+//  GLOBAL STATE — Stored in localStorage
+// ===========================================================
+const STORAGE_KEY = 'lifeos_v3';
+
+function loadState() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return null;
+}
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+const defaultState = {
+  chapters: [
+    {id:1, subject:'History', name:'Ancient India — Indus Valley Civilization', status:'Completed', pyqs:40, pyqsDone:40, days:7, notes:'Focus on Harappa & Mohenjo-Daro'},
+    {id:2, subject:'Polity', name:'Fundamental Rights & DPSP', status:'In Progress', pyqs:60, pyqsDone:28, days:10, notes:'Important for Prelims'},
+    {id:3, subject:'Maths', name:'Percentage, Profit & Loss', status:'In Progress', pyqs:80, pyqsDone:35, days:14, notes:'Practice shortcuts'},
+    {id:4, subject:'History', name:'Medieval India — Delhi Sultanate', status:'Not Started', pyqs:50, pyqsDone:0, days:7, notes:''},
+    {id:5, subject:'English', name:'Error Spotting & Vocabulary', status:'Completed', pyqs:100, pyqsDone:100, days:5, notes:''},
+    {id:6, subject:'Reasoning', name:'Coding-Decoding & Analogies', status:'In Progress', pyqs:70, pyqsDone:40, days:8, notes:''},
+  ],
+  workouts: [
+    {id:1, name:'Bench Press', type:'Strength', muscle:'Chest', sets:4, reps:10, weight:70, notes:'Personal best: 75kg', date: getTodayStr()},
+    {id:2, name:'Pull-ups', type:'Bodyweight', muscle:'Back', sets:3, reps:8, weight:0, notes:'', date: getTodayStr()},
+    {id:3, name:'Running', type:'Cardio', muscle:'Cardio', sets:1, reps:30, weight:0, notes:'5km run', date: getYesterdayStr()},
+  ],
+  goals: [
+    {id:1, title:'Study 3 hours', cat:'Study', type:'Daily', target:3, unit:'hours', progress:2, done:false, priority:'High'},
+    {id:2, title:'Solve 20 PYQs', cat:'Study', type:'Daily', target:20, unit:'questions', progress:12, done:false, priority:'High'},
+    {id:3, title:'Morning workout', cat:'Fitness', type:'Daily', target:1, unit:'session', progress:1, done:true, priority:'Medium'},
+    {id:4, title:'Drink 3L water', cat:'Health', type:'Daily', target:3, unit:'litres', progress:2, done:false, priority:'Medium'},
+    {id:5, title:'Complete Polity Unit 1', cat:'Study', type:'Weekly', target:1, unit:'unit', progress:0, done:false, priority:'High'},
+    {id:6, title:'Workout 5 days', cat:'Fitness', type:'Weekly', target:5, unit:'days', progress:3, done:false, priority:'Medium'},
+    {id:7, title:'Finish Modern History', cat:'Study', type:'Monthly', target:1, unit:'module', progress:0, done:false, priority:'High'},
+  ],
+  timerSessions: [],
+  studyFilter: 'All',
+  goalsFilter: 'Daily',
+  weekStudy: [2.5, 3, 1.5, 3.5, 2, 0, 2],
+  weekFit: [45, 0, 60, 30, 45, 90, 0],
+  streak: 12,
+  nextId: 20,
+};
+
+function getTodayStr() {
+  return new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function getYesterdayStr() {
+  const d = new Date(); d.setDate(d.getDate()-1);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+let state = loadState() || defaultState;
+
+// ===========================================================
+//  CHARTS REGISTRY
+// ===========================================================
+const charts = {};
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ===========================================================
+//  CLOCK
+// ===========================================================
+function updateClock() {
+  const n = new Date();
+  const pad = v => String(v).padStart(2,'0');
+  document.getElementById('topClock').textContent =
+    `${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('topDate').textContent =
+    `${days[n.getDay()]}, ${n.getDate()} ${months[n.getMonth()]} ${n.getFullYear()}`;
+
+  // Update greeting
+  const hr = n.getHours();
+  let greeting = 'Good Evening, Vinay';
+  if (hr < 5) greeting = 'Keep pushing, Vinay 🌙';
+  else if (hr < 12) greeting = 'Good Morning, Vinay ☀️';
+  else if (hr < 17) greeting = 'Good Afternoon, Vinay 🌤️';
+  const el = document.getElementById('pageSubtitle');
+  if (el && document.getElementById('page-dashboard').classList.contains('active')) {
+    el.textContent = greeting;
+  }
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ===========================================================
+//  NAVIGATION
+// ===========================================================
+const pageTitles = {
+  dashboard: {title:'Dashboard', sub:'Your personal command center'},
+  study: {title:'Study Tracker', sub:'SSC CGL — Track chapters, PYQs & progress'},
+  fitness: {title:'Fitness Tracker', sub:'Log workouts and monitor strength gains'},
+  goals: {title:'Goal Manager', sub:'Daily targets, weekly milestones, monthly goals'},
+  timer: {title:'Focus Timer', sub:'Pomodoro sessions for deep work'},
+  analytics: {title:'Analytics & Reports', sub:'Performance insights and weekly reports'},
+};
+
+function navigate(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (el) el.classList.add('active');
+  const info = pageTitles[page] || {};
+  document.getElementById('pageTitle').textContent = info.title || page;
+  document.getElementById('pageSubtitle').textContent = info.sub || '';
+  closeSidebar();
+  renderPage(page);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function renderPage(page) {
+  switch(page) {
+    case 'dashboard': renderDashboard(); break;
+    case 'study': renderStudy(); break;
+    case 'fitness': renderFitness(); break;
+    case 'goals': renderGoals(); break;
+    case 'analytics': renderAnalytics(); break;
+  }
+}
+
+// ===========================================================
+//  SIDEBAR
+// ===========================================================
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+
+// ===========================================================
+//  TOAST
+// ===========================================================
+function showToast(msg, type='info') {
+  const icons = {success:'✅',error:'❌',info:'💡',warning:'⚠️'};
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${icons[type]||'💡'}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(20px)'; t.style.transition='all 0.3s'; setTimeout(()=>t.remove(),300); }, 3000);
+}
+
+// ===========================================================
+//  QUOTES
+// ===========================================================
+const quotes = [
+  {q:"Discipline is the bridge between goals and accomplishment.", a:"Jim Rohn"},
+  {q:"Success is the sum of small efforts, repeated day in and day out.", a:"Robert Collier"},
+  {q:"The secret of getting ahead is getting started.", a:"Mark Twain"},
+  {q:"It's not about having time. It's about making time.", a:"Unknown"},
+  {q:"Focus on being productive instead of busy.", a:"Tim Ferriss"},
+  {q:"Small daily improvements over time lead to stunning results.", a:"Robin Sharma"},
+  {q:"Don't count the days, make the days count.", a:"Muhammad Ali"},
+];
+const todayQuote = quotes[new Date().getDay() % quotes.length];
+if(document.getElementById('quoteText')) document.getElementById('quoteText').textContent = todayQuote.q;
+if(document.getElementById('quoteAuthor')) document.getElementById('quoteAuthor').textContent = '— ' + todayQuote.a;
+
+// ===========================================================
+//  SUBJECT COLORS
+// ===========================================================
+const subjectColors = {
+  History:'#22d3ee', Polity:'#a855f7', Maths:'#f59e0b', English:'#10b981',
+  Reasoning:'#ec4899', Geography:'#22c55e', Economics:'#3b82f6', Science:'#f97316', GK:'#e879f9'
+};
+
+// ===========================================================
+//  RENDER DASHBOARD
+// ===========================================================
+function renderDashboard() {
+  const done = state.chapters.filter(c=>c.status==='Completed').length;
+  const total = state.chapters.length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  const todayStudy = state.weekStudy[6] || 0;
+  const pyqsDone = state.chapters.reduce((a,c)=>a+c.pyqsDone,0);
+  const dailyGoalsDone = state.goals.filter(g=>g.type==='Daily'&&g.done).length;
+  const dailyGoalsTotal = state.goals.filter(g=>g.type==='Daily').length;
+
+  // Stats
+  document.getElementById('dashStats').innerHTML = `
+    <div class="stat-card cyan">
+      <div class="stat-label">Chapters Done</div>
+      <div class="stat-value">${done}<span class="stat-unit">/${total}</span></div>
+      <div class="progress-track mt-3" style="height:4px"><div class="progress-fill cyan" style="width:${pct}%"></div></div>
+      <div class="stat-footer"><span class="stat-delta delta-up">▲ ${pct}%</span> completion</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-label">Study Hours Today</div>
+      <div class="stat-value">${todayStudy.toFixed(1)}<span class="stat-unit">h</span></div>
+      <div class="progress-track mt-3" style="height:4px"><div class="progress-fill purple" style="width:${Math.min(100,Math.round(todayStudy/4*100))}%"></div></div>
+      <div class="stat-footer text-muted">Target: 4h daily</div>
+    </div>
+    <div class="stat-card emerald">
+      <div class="stat-label">PYQs Solved</div>
+      <div class="stat-value">${pyqsDone}</div>
+      <div class="progress-track mt-3" style="height:4px"><div class="progress-fill emerald" style="width:${Math.min(100,Math.round(pyqsDone/500*100))}%"></div></div>
+      <div class="stat-footer"><span class="stat-delta delta-up">▲ +${Math.round(pyqsDone/500*100)}%</span> of 500</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-label">Daily Goals</div>
+      <div class="stat-value">${dailyGoalsDone}<span class="stat-unit">/${dailyGoalsTotal}</span></div>
+      <div class="progress-track mt-3" style="height:4px"><div class="progress-fill amber" style="width:${dailyGoalsTotal?Math.round(dailyGoalsDone/dailyGoalsTotal*100):0}%"></div></div>
+      <div class="stat-footer text-muted">Today's progress</div>
+    </div>
+  `;
+
+  // Alerts
+  const alerts = [];
+  if (state.weekStudy[5] === 0) alerts.push({type:'amber', icon:'⚠️', text:'You missed study yesterday. Stay consistent — your streak depends on it!'});
+  if (dailyGoalsTotal - dailyGoalsDone > 2) alerts.push({type:'cyan', icon:'🎯', text:`${dailyGoalsTotal - dailyGoalsDone} goals still pending today. You can do this!`});
+  if (state.streak >= 7) alerts.push({type:'emerald', icon:'🔥', text:`Amazing! ${state.streak}-day streak maintained. Keep the momentum going!`});
+  document.getElementById('dashAlerts').innerHTML = alerts.map(a=>`
+    <div class="alert alert-${a.type}"><span>${a.icon}</span><span>${a.text}</span></div>
+  `).join('');
+
+  // Week chart
+  destroyChart('weekChart');
+  const ctx = document.getElementById('weekChart').getContext('2d');
+  charts.weekChart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets:[
+        {label:'Study hrs', data:state.weekStudy, backgroundColor:'rgba(34,211,238,0.7)', borderRadius:6, borderSkipped:false},
+        {label:'Workout min/10', data:state.weekFit.map(v=>Math.round(v/10*10)/10), backgroundColor:'rgba(168,85,247,0.6)', borderRadius:6, borderSkipped:false},
+      ]
+    },
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#64748b',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{ticks:{color:'#64748b',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true},
+      }
+    }
+  });
+
+  // Heatmap
+  const heatData = Array.from({length:117}, (_,i) => {
+    const v = Math.random();
+    if (v < 0.3) return 0;
+    if (v < 0.55) return 1;
+    if (v < 0.75) return 2;
+    if (v < 0.9) return 3;
+    return 4;
+  });
+  document.getElementById('heatmap').innerHTML = heatData.map(v=>`<div class="heatmap-cell h${v}" title="Activity: ${['None','Low','Medium','High','Excellent'][v]}"></div>`).join('');
+
+  // Insights
+  const subMap = {};
+  state.chapters.forEach(c => { if(!subMap[c.subject]) subMap[c.subject]={total:0,done:0,pyqs:c.pyqs,pyqsDone:c.pyqsDone}; subMap[c.subject].total++; if(c.status==='Completed') subMap[c.subject].done++; });
+  const weakSubject = Object.entries(subMap).sort((a,b)=>((a[1].done/a[1].total)-(b[1].done/b[1].total)))[0];
+  const consistencyScore = Math.round(state.weekStudy.filter(h=>h>0).length/7*100);
+
+  document.getElementById('dashInsights').innerHTML = `
+    <div class="insight-card">
+      <div class="insight-icon">🎯</div>
+      <div class="insight-body">
+        <div class="insight-title">Weak Area Detected</div>
+        <div class="insight-text">${weakSubject?weakSubject[0]:'Maths'} needs attention — lowest completion rate. Add 30 extra minutes this week.</div>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-icon">📊</div>
+      <div class="insight-body">
+        <div class="insight-title">Study Consistency: ${consistencyScore}%</div>
+        <div class="insight-text">You studied on ${state.weekStudy.filter(h=>h>0).length} out of 7 days. Target 6+ days for exam readiness.</div>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-icon">💪</div>
+      <div class="insight-body">
+        <div class="insight-title">Fitness on Track</div>
+        <div class="insight-text">Workout sessions logged: ${state.workouts.length}. Physical fitness boosts cognitive performance by 20%.</div>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-icon">🔥</div>
+      <div class="insight-body">
+        <div class="insight-title">Current Streak: ${state.streak} Days</div>
+        <div class="insight-text">You're in the top 15% of consistent learners. Maintain it to build an unstoppable habit.</div>
+      </div>
+    </div>
+  `;
+
+  // Today tasks
+  const dailyGoals = state.goals.filter(g=>g.type==='Daily');
+  document.getElementById('dashTodayTasks').innerHTML = dailyGoals.length ? dailyGoals.map(g => {
+    const pct = Math.min(100, Math.round(g.progress/g.target*100));
+    const catC = {Study:'cyan',Fitness:'purple',Personal:'emerald',Career:'amber',Health:'rose'}[g.cat]||'cyan';
+    return `<div class="list-item" style="${g.done?'opacity:0.65':''}">
+      <div class="list-item-dot" style="color:var(--${catC});background:var(--${catC})"></div>
+      <div class="list-item-content">
+        <div class="list-item-title" style="${g.done?'text-decoration:line-through':''}">${g.title}</div>
+        <div class="list-item-meta">${g.cat} · ${g.progress}/${g.target} ${g.unit||''}</div>
+        <div class="progress-track mt-2" style="height:4px"><div class="progress-fill ${catC}" style="width:${pct}%"></div></div>
+      </div>
+      <div class="list-item-actions">
+        <button class="btn btn-xs ${g.done?'btn-secondary':'btn-success'}" onclick="quickToggleGoal(${g.id})">${g.done?'Undo':'✓'}</button>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty-state"><div class="empty-icon">🎯</div><div class="empty-title">No daily goals</div><div class="empty-sub">Add goals in the Goals section</div></div>';
+
+  // Subject progress bars in dashboard
+  document.getElementById('dashSubjectProgress').innerHTML = Object.entries(subMap).map(([s,v])=>{
+    const p = Math.round(v.done/v.total*100);
+    const col = subjectColors[s]||'#22d3ee';
+    return `<div class="mb-3">
+      <div class="flex justify-between items-center mb-1">
+        <span class="text-sm font-bold" style="color:${col}">${s}</span>
+        <span class="text-xs text-muted">${v.done}/${v.total} · ${p}%</span>
+      </div>
+      <div class="progress-track" style="height:6px">
+        <div class="progress-fill" style="width:${p}%;background:linear-gradient(90deg,${col}88,${col})"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Pie chart
+  destroyChart('pieChart');
+  const pieLabels = Object.keys(subMap);
+  const pieData = pieLabels.map(s=>state.chapters.filter(c=>c.subject===s).reduce((a,c)=>a+c.pyqsDone,0));
+  const pieColors = pieLabels.map(s=>subjectColors[s]||'#64748b');
+  if (pieLabels.length) {
+    const ctx2 = document.getElementById('pieChart').getContext('2d');
+    charts.pieChart = new Chart(ctx2, {
+      type:'doughnut',
+      data:{labels:pieLabels, datasets:[{data:pieData, backgroundColor:pieColors.map(c=>c+'cc'), borderColor:pieColors, borderWidth:2, hoverOffset:8}]},
+      options:{responsive:true, maintainAspectRatio:false, cutout:'60%',
+        plugins:{legend:{display:false}}}
+    });
+  }
+
+  // Goals badge
+  const pendingCount = state.goals.filter(g=>g.type==='Daily'&&!g.done).length;
+  document.getElementById('goalsBadge').textContent = pendingCount || '';
+  document.getElementById('goalsBadge').style.display = pendingCount ? 'inline' : 'none';
+}
+
+// ===========================================================
+//  RENDER STUDY
+// ===========================================================
+function renderStudy() {
+  const done = state.chapters.filter(c=>c.status==='Completed').length;
+  const inProg = state.chapters.filter(c=>c.status==='In Progress').length;
+  const totalPYQ = state.chapters.reduce((a,c)=>a+c.pyqs,0);
+  const donePYQ = state.chapters.reduce((a,c)=>a+c.pyqsDone,0);
+  const pyqPct = totalPYQ ? Math.round(donePYQ/totalPYQ*100) : 0;
+
+  document.getElementById('studyStats').innerHTML = `
+    <div class="stat-card cyan">
+      <div class="stat-label">Chapters Completed</div>
+      <div class="stat-value">${done}<span class="stat-unit">/${state.chapters.length}</span></div>
+      <div class="progress-track mt-3" style="height:4px"><div class="progress-fill cyan" style="width:${state.chapters.length?Math.round(done/state.chapters.length*100):0}%"></div></div>
+      <div class="stat-footer text-muted">SSC CGL chapters</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-label">In Progress</div>
+      <div class="stat-value">${inProg}</div>
+      <div class="stat-footer text-muted">Active chapters</div>
+    </div>
+    <div class="stat-card emerald">
+      <div class="stat-label">PYQs Solved</div>
+      <div class="stat-value">${donePYQ}<span class="stat-unit">/${totalPYQ}</span></div>
+      <div class="progress-track mt-3" style="height:4px"><div class="progress-fill emerald" style="width:${pyqPct}%"></div></div>
+      <div class="stat-footer"><span class="stat-delta delta-up">▲ ${pyqPct}%</span></div>
+    </div>
+  `;
+
+  // Subject bars
+  const subMap = {};
+  state.chapters.forEach(c => {
+    if(!subMap[c.subject]) subMap[c.subject]={total:0,done:0,pyqs:0,pyqsDone:0};
+    subMap[c.subject].total++;
+    subMap[c.subject].pyqs += c.pyqs;
+    subMap[c.subject].pyqsDone += c.pyqsDone;
+    if(c.status==='Completed') subMap[c.subject].done++;
+  });
+  document.getElementById('studySubjectBars').innerHTML = Object.entries(subMap).map(([s,v])=>{
+    const p = Math.round(v.done/v.total*100);
+    const pp = v.pyqs ? Math.round(v.pyqsDone/v.pyqs*100) : 0;
+    const col = subjectColors[s]||'#22d3ee';
+    return `<div class="mb-4">
+      <div class="flex justify-between items-center mb-2">
+        <span style="font-size:13px;font-weight:700;color:${col}">${s}</span>
+        <span class="text-xs text-muted">${v.pyqsDone}/${v.pyqs} PYQs</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div style="font-size:11px;color:var(--t3);width:50px">Chapters</div>
+        <div class="progress-track" style="flex:1;height:6px"><div class="progress-fill" style="width:${p}%;background:${col}"></div></div>
+        <span style="font-size:11px;color:var(--t3);width:30px">${p}%</span>
+      </div>
+      <div class="flex items-center gap-2 mt-1">
+        <div style="font-size:11px;color:var(--t3);width:50px">PYQs</div>
+        <div class="progress-track" style="flex:1;height:6px"><div class="progress-fill" style="width:${pp}%;background:${col}88"></div></div>
+        <span style="font-size:11px;color:var(--t3);width:30px">${pp}%</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Chapters list
+  const filtered = state.studyFilter==='All' ? state.chapters : state.chapters.filter(c=>c.subject===state.studyFilter);
+  document.getElementById('chaptersList').innerHTML = filtered.length ? filtered.map(c=>{
+    const pct = c.pyqs ? Math.round(c.pyqsDone/c.pyqs*100) : 0;
+    const statusClass = c.status==='Completed'?'status-done':c.status==='In Progress'?'status-progress':'status-todo';
+    const col = subjectColors[c.subject]||'#22d3ee';
+    return `<div class="chapter-item">
+      <div class="chapter-item-top">
+        <div class="flex items-start gap-3">
+          <div class="chapter-subject-dot" style="background:${col};box-shadow:0 0 8px ${col}66"></div>
+          <div>
+            <div class="chapter-name">${c.name}</div>
+            <div class="chapter-meta">${c.subject} · Target: ${c.days} days · PYQs: ${c.pyqsDone}/${c.pyqs}</div>
+            ${c.notes?`<div class="chapter-meta mt-1" style="font-style:italic">${c.notes}</div>`:''}
+          </div>
+        </div>
+        <div class="chapter-right">
+          <span class="${statusClass}">${c.status}</span>
+          <button class="btn btn-icon btn-xs" onclick="removeChapter(${c.id})" title="Delete">✕</button>
+        </div>
+      </div>
+      <div class="flex items-center gap-8">
+        <div style="flex:1">
+          <div class="flex justify-between mb-1">
+            <span class="text-xs text-muted">PYQ Progress</span>
+            <span class="text-xs" style="color:${col}">${pct}%</span>
+          </div>
+          <div class="progress-track" style="height:6px"><div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg,${col}88,${col})"></div></div>
+        </div>
+        <div>
+          <select class="form-select" style="padding:5px 10px;font-size:12px;width:auto" onchange="updateChapterStatus(${c.id},this.value)">
+            <option ${c.status==='Not Started'?'selected':''}>Not Started</option>
+            <option ${c.status==='In Progress'?'selected':''}>In Progress</option>
+            <option ${c.status==='Completed'?'selected':''}>Completed</option>
+          </select>
+        </div>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-title">No chapters found</div><div class="empty-sub">Add a new chapter above</div></div>';
+}
+
+// ===========================================================
+//  RENDER FITNESS
+// ===========================================================
+function renderFitness() {
+  const totalSets = state.workouts.reduce((a,w)=>a+w.sets,0);
+  const cardio = state.workouts.filter(w=>w.type==='Cardio').length;
+  const strength = state.workouts.filter(w=>w.type==='Strength'||w.type==='Bodyweight').length;
+  const estCal = state.workouts.reduce((a,w)=>a+(w.type==='Cardio'?w.reps*8:w.sets*w.reps*0.4),0);
+
+  document.getElementById('fitStats').innerHTML = `
+    <div class="stat-card emerald">
+      <div class="stat-label">Exercises Logged</div>
+      <div class="stat-value">${state.workouts.length}</div>
+      <div class="stat-footer text-muted">Total logged sessions</div>
+    </div>
+    <div class="stat-card cyan">
+      <div class="stat-label">Total Sets</div>
+      <div class="stat-value">${totalSets}</div>
+      <div class="stat-footer"><span class="stat-delta delta-up">↑ strength: ${strength}</span></div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-label">Est. Calories</div>
+      <div class="stat-value">${Math.round(estCal)}</div>
+      <div class="stat-footer text-muted">Burned (estimate)</div>
+    </div>
+  `;
+
+  document.getElementById('fitCount').textContent = state.workouts.length + ' sessions';
+
+  // Workout list
+  document.getElementById('workoutList').innerHTML = state.workouts.length ? state.workouts.map(w=>{
+    const typeColors = {Strength:'cyan',Cardio:'emerald',Bodyweight:'purple',Flexibility:'amber',Sports:'rose'};
+    const tc = typeColors[w.type]||'cyan';
+    const vol = w.type==='Cardio' ? `${w.reps} min` : `${w.sets}×${w.reps}${w.weight?` @ ${w.weight}kg`:''}`;
+    return `<div class="workout-entry">
+      <div class="workout-entry-header">
+        <div>
+          <div class="workout-entry-name">${w.name}</div>
+          <div class="workout-entry-meta">${w.muscle} · ${w.date}</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="badge badge-${tc}">${w.type}</span>
+          <button class="btn btn-icon btn-xs" onclick="removeWorkout(${w.id})">✕</button>
+        </div>
+      </div>
+      <div class="workout-chips">
+        <div class="chip">📦 ${w.sets} sets</div>
+        <div class="chip">🔁 ${w.type==='Cardio'?w.reps+' min':w.reps+' reps'}</div>
+        ${w.weight?`<div class="chip">⚖️ ${w.weight}kg</div>`:''}
+        ${w.notes?`<div class="chip">📝 ${w.notes}</div>`:''}
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty-state"><div class="empty-icon">💪</div><div class="empty-title">No workouts logged</div><div class="empty-sub">Log your first exercise above</div></div>';
+
+  // Fit week chart
+  destroyChart('fitWeekChart');
+  const ctx = document.getElementById('fitWeekChart').getContext('2d');
+  charts.fitWeekChart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets:[{
+        data:state.weekFit,
+        backgroundColor:state.weekFit.map(v=>v>0?'rgba(16,185,129,0.7)':'rgba(100,116,139,0.3)'),
+        borderRadius:6, borderSkipped:false
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#64748b',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{ticks:{color:'#64748b',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true},
+      }
+    }
+  });
+}
+
+// ===========================================================
+//  RENDER GOALS
+// ===========================================================
+function renderGoals() {
+  const daily = state.goals.filter(g=>g.type==='Daily');
+  const weekly = state.goals.filter(g=>g.type==='Weekly');
+  const monthly = state.goals.filter(g=>g.type==='Monthly');
+  const dailyDone = daily.filter(g=>g.done).length;
+  const weeklyDone = weekly.filter(g=>g.done).length;
+  const monthlyDone = monthly.filter(g=>g.done).length;
+  const weeklyPct = weekly.length ? Math.round(weeklyDone/weekly.length*100) : 0;
+
+  document.getElementById('streakNum').textContent = state.streak;
+  document.getElementById('todayDone').textContent = dailyDone;
+  document.getElementById('todayTotal').textContent = daily.length;
+  document.getElementById('weeklyGoalPct').innerHTML = weeklyPct + '<span class="stat-unit">%</span>';
+  document.getElementById('monthlyGoalDone').textContent = monthlyDone;
+
+  // Goal select for progress update
+  const progressSelect = document.getElementById('progressGoalSelect');
+  progressSelect.innerHTML = state.goals.map(g=>`<option value="${g.id}">${g.title} (${g.type})</option>`).join('');
+
+  // Goals list
+  const filtered = state.goalsFilter==='All' ? state.goals : state.goals.filter(g=>g.type===state.goalsFilter);
+  const catColors = {Study:'cyan',Fitness:'purple',Personal:'emerald',Career:'amber',Health:'rose'};
+  const priColors = {High:'rose',Medium:'amber',Low:'emerald'};
+
+  document.getElementById('goalsList').innerHTML = filtered.length ? filtered.map(g=>{
+    const pct = Math.min(100, Math.round(g.progress/g.target*100));
+    const cc = catColors[g.cat]||'cyan';
+    const pc = priColors[g.priority]||'amber';
+    return `<div class="goal-item" style="${g.done?'opacity:0.7':''}">
+      <div class="goal-item-header">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="badge badge-${cc}">${g.cat}</span>
+            <span class="badge badge-${pc}">${g.priority}</span>
+            <span class="badge badge-gray">${g.type}</span>
+          </div>
+          <div class="goal-item-title" style="${g.done?'text-decoration:line-through':''}">${g.title}</div>
+          <div class="goal-item-meta">${g.progress} / ${g.target} ${g.unit||''} completed</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="goal-pct" style="color:var(--${g.done?'emerald':'cyan'})">${pct}%</div>
+          <div class="flex-col gap-2">
+            <button class="btn btn-xs ${g.done?'btn-secondary':'btn-success'} btn-full" onclick="toggleGoal(${g.id})">${g.done?'Undo':'✓ Done'}</button>
+            <button class="btn btn-xs btn-danger btn-full" onclick="removeGoal(${g.id})">Delete</button>
+          </div>
+        </div>
+      </div>
+      <div class="progress-track" style="height:8px">
+        <div class="progress-fill ${g.done?'emerald':cc}" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty-state"><div class="empty-icon">🎯</div><div class="empty-title">No goals yet</div><div class="empty-sub">Set a new goal to get started</div></div>';
+}
+
+// ===========================================================
+//  RENDER ANALYTICS
+// ===========================================================
+function renderAnalytics() {
+  const totalStudy = state.weekStudy.reduce((a,b)=>a+b,0);
+  const totalFit = state.weekFit.reduce((a,b)=>a+b,0);
+  const goalsCompleted = state.goals.filter(g=>g.done).length;
+  const goalsTotal = state.goals.length;
+  const goalRate = goalsTotal ? Math.round(goalsCompleted/goalsTotal*100) : 0;
+  const pyqsDone = state.chapters.reduce((a,c)=>a+c.pyqsDone,0);
+  const pyqsTotal = state.chapters.reduce((a,c)=>a+c.pyqs,0);
+
+  document.getElementById('analyticsStats').innerHTML = `
+    <div class="stat-card cyan">
+      <div class="stat-label">Total Study Hrs (Week)</div>
+      <div class="stat-value">${totalStudy.toFixed(1)}<span class="stat-unit">h</span></div>
+      <div class="stat-footer"><span class="stat-delta delta-up">▲ 12%</span> vs last week</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-label">Workout Minutes (Week)</div>
+      <div class="stat-value">${totalFit}<span class="stat-unit">m</span></div>
+      <div class="stat-footer"><span class="stat-delta delta-up">▲ 8%</span> vs last week</div>
+    </div>
+    <div class="stat-card emerald">
+      <div class="stat-label">Goal Completion</div>
+      <div class="stat-value">${goalRate}<span class="stat-unit">%</span></div>
+      <div class="stat-footer">${goalsCompleted}/${goalsTotal} goals</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-label">PYQ Completion</div>
+      <div class="stat-value">${pyqsTotal?Math.round(pyqsDone/pyqsTotal*100):0}<span class="stat-unit">%</span></div>
+      <div class="stat-footer">${pyqsDone}/${pyqsTotal} solved</div>
+    </div>
+  `;
+
+  // Study line chart
+  destroyChart('studyLineChart');
+  const studyData = [1.5,2,2.5,1,3,2,2.5, 2,3,1.5,3.5,2,0,2, 2.5,3,2,4,1.5,3,2.5, ...state.weekStudy];
+  const labels28 = Array.from({length:28},(_,i)=>{const d=new Date();d.setDate(d.getDate()-27+i);return `${d.getDate()}/${d.getMonth()+1}`;});
+  const ctx3 = document.getElementById('studyLineChart').getContext('2d');
+  charts.studyLineChart = new Chart(ctx3, {
+    type:'line',
+    data:{
+      labels:labels28.filter((_,i)=>i%4===0||i===27),
+      datasets:[{
+        label:'Study hours',
+        data:[1.5,2.5,3,2,1,3,2.5,...state.weekStudy].filter((_,i)=>i%2===0||i===9),
+        borderColor:'#22d3ee', backgroundColor:'rgba(34,211,238,0.08)',
+        borderWidth:2, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#22d3ee'
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true},
+      }
+    }
+  });
+
+  // Fit line chart
+  destroyChart('fitLineChart');
+  const ctx4 = document.getElementById('fitLineChart').getContext('2d');
+  charts.fitLineChart = new Chart(ctx4, {
+    type:'line',
+    data:{
+      labels:labels28.filter((_,i)=>i%4===0||i===27),
+      datasets:[{
+        label:'Workout min',
+        data:[30,0,60,45,0,60,45,30,60,45].filter((_,i)=>i%2===0||i===9),
+        borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.08)',
+        borderWidth:2, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#a855f7'
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true},
+      }
+    }
+  });
+
+  // Performance score
+  const studyScore = Math.min(100, Math.round(totalStudy/14*100));
+  const fitScore = Math.min(100, Math.round(totalFit/210*100));
+  const goalScore = goalRate;
+  const overallScore = Math.round((studyScore + fitScore + goalScore) / 3);
+  document.getElementById('perfScore').textContent = overallScore;
+  const label = overallScore >= 80 ? 'Excellent' : overallScore >= 60 ? 'Good' : overallScore >= 40 ? 'Average' : 'Needs Work';
+  document.getElementById('perfBadge').textContent = `▲ ${label} — Keep pushing!`;
+  document.getElementById('perfBreakdown').innerHTML = [
+    {label:'Study Score',val:studyScore,color:'cyan'},
+    {label:'Fitness Score',val:fitScore,color:'purple'},
+    {label:'Goal Score',val:goalScore,color:'emerald'},
+  ].map(item=>`<div class="flex items-center gap-3 mb-3">
+    <div style="font-size:12px;color:var(--t3);width:90px;flex-shrink:0">${item.label}</div>
+    <div class="progress-track" style="flex:1;height:8px"><div class="progress-fill ${item.color}" style="width:${item.val}%"></div></div>
+    <div style="font-size:12px;font-weight:600;color:var(--${item.color});width:34px;text-align:right">${item.val}</div>
+  </div>`).join('');
+
+  // Balance radar chart
+  destroyChart('balanceChart');
+  const ctx5 = document.getElementById('balanceChart').getContext('2d');
+  charts.balanceChart = new Chart(ctx5, {
+    type:'radar',
+    data:{
+      labels:['Study','Fitness','Goals','Consistency','PYQs'],
+      datasets:[{
+        label:'You',
+        data:[studyScore, fitScore, goalScore, Math.round(state.weekStudy.filter(h=>h>0).length/7*100), pyqsTotal?Math.round(pyqsDone/pyqsTotal*100):0],
+        backgroundColor:'rgba(34,211,238,0.15)', borderColor:'#22d3ee', borderWidth:2,
+        pointBackgroundColor:'#22d3ee', pointRadius:4,
+      },{
+        label:'Target',
+        data:[80,70,80,85,70],
+        backgroundColor:'rgba(168,85,247,0.08)', borderColor:'rgba(168,85,247,0.4)', borderWidth:1,
+        borderDash:[5,5], pointRadius:0,
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{
+        r:{
+          angleLines:{color:'rgba(255,255,255,0.07)'},
+          grid:{color:'rgba(255,255,255,0.07)'},
+          pointLabels:{color:'#64748b',font:{size:11}},
+          ticks:{display:false},
+          min:0,max:100,
+        }
+      }
+    }
+  });
+
+  // Weekly report table
+  const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  document.getElementById('weeklyReportTable').innerHTML = `
+    <div class="table-responsive" style="overflow-x:auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Day</th>
+            <th>Study</th>
+            <th>Workout</th>
+            <th>Study Progress</th>
+            <th>Fitness Progress</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${days.map((d,i)=>{
+            const sh = state.weekStudy[i]||0;
+            const fw = state.weekFit[i]||0;
+            const ok = sh>=2 && fw>=30;
+            const partial = sh>0 || fw>0;
+            return `<tr>
+              <td style="font-weight:600">${d}</td>
+              <td style="color:${sh>=2?'var(--emerald)':'var(--amber)'}">${sh}h</td>
+              <td style="color:${fw>=30?'var(--emerald)':'var(--amber)'}">${fw}m</td>
+              <td style="min-width:100px">
+                <div class="progress-track" style="height:5px"><div class="progress-fill cyan" style="width:${Math.min(100,Math.round(sh/4*100))}%"></div></div>
+              </td>
+              <td style="min-width:100px">
+                <div class="progress-track" style="height:5px"><div class="progress-fill purple" style="width:${Math.min(100,Math.round(fw/60*100))}%"></div></div>
+              </td>
+              <td><span class="${ok?'status-done':partial?'status-progress':'status-todo'}">${ok?'🔥 Great':partial?'⚡ Partial':'😴 Rest'}</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ===========================================================
+//  ACTIONS — Study
+// ===========================================================
+function addChapter() {
+  const subject = document.getElementById('sSubject').value;
+  const name = document.getElementById('sChapter').value.trim();
+  const pyqs = parseInt(document.getElementById('sPyqs').value)||30;
+  const days = parseInt(document.getElementById('sDays').value)||7;
+  const notes = document.getElementById('sNotes').value.trim();
+  if (!name) { showToast('Please enter a chapter name', 'warning'); document.getElementById('sChapter').focus(); return; }
+  state.chapters.push({id:state.nextId++, subject, name, status:'Not Started', pyqs, pyqsDone:0, days, notes});
+  ['sChapter','sPyqs','sDays','sNotes'].forEach(id=>document.getElementById(id).value='');
+  saveState();
+  renderStudy();
+  renderDashboard();
+  showToast(`Chapter "${name}" added!`, 'success');
+}
+
+function filterStudy(filter, el) {
+  state.studyFilter = filter;
+  document.querySelectorAll('#page-study .tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderStudy();
+}
+
+function updateChapterStatus(id, status) {
+  const c = state.chapters.find(c=>c.id===id);
+  if (c) {
+    c.status = status;
+    if (status==='Completed') c.pyqsDone = c.pyqs;
+    else if (status==='Not Started') c.pyqsDone = 0;
+    saveState();
+    renderStudy();
+    renderDashboard();
+    showToast(`Status updated to "${status}"`, 'info');
+  }
+}
+
+function removeChapter(id) {
+  if (!confirm('Delete this chapter?')) return;
+  state.chapters = state.chapters.filter(c=>c.id!==id);
+  saveState();
+  renderStudy();
+  renderDashboard();
+  showToast('Chapter deleted', 'info');
+}
+
+// ===========================================================
+//  ACTIONS — Fitness
+// ===========================================================
+function addWorkout() {
+  const name = document.getElementById('fName').value.trim();
+  const type = document.getElementById('fType').value;
+  const muscle = document.getElementById('fMuscle').value;
+  const sets = parseInt(document.getElementById('fSets').value)||1;
+  const reps = parseInt(document.getElementById('fReps').value)||1;
+  const weight = parseFloat(document.getElementById('fWeight').value)||0;
+  const notes = document.getElementById('fNotes').value.trim();
+  if (!name) { showToast('Please enter exercise name', 'warning'); document.getElementById('fName').focus(); return; }
+  state.workouts.unshift({id:state.nextId++, name, type, muscle, sets, reps, weight, notes, date:getTodayStr()});
+  state.weekFit[6] = (state.weekFit[6]||0) + sets * (type==='Cardio'?reps:Math.round(reps*0.5));
+  ['fName','fSets','fReps','fWeight','fNotes'].forEach(id=>document.getElementById(id).value='');
+  saveState();
+  renderFitness();
+  renderDashboard();
+  showToast(`${name} logged!`, 'success');
+}
+
+function removeWorkout(id) {
+  if (!confirm('Delete this workout entry?')) return;
+  state.workouts = state.workouts.filter(w=>w.id!==id);
+  saveState();
+  renderFitness();
+  showToast('Workout entry deleted', 'info');
+}
+
+// ===========================================================
+//  ACTIONS — Goals
+// ===========================================================
+function addGoal() {
+  const title = document.getElementById('gTitle').value.trim();
+  const cat = document.getElementById('gCat').value;
+  const type = document.getElementById('gType').value;
+  const target = parseInt(document.getElementById('gTarget').value)||1;
+  const unit = document.getElementById('gUnit').value.trim()||'units';
+  const priority = document.getElementById('gPriority').value;
+  if (!title) { showToast('Please enter a goal title', 'warning'); document.getElementById('gTitle').focus(); return; }
+  state.goals.push({id:state.nextId++, title, cat, type, target, unit, progress:0, done:false, priority});
+  document.getElementById('gTitle').value='';
+  document.getElementById('gTarget').value='';
+  document.getElementById('gUnit').value='';
+  saveState();
+  renderGoals();
+  renderDashboard();
+  showToast(`Goal "${title}" added!`, 'success');
+}
+
+function filterGoals(filter, el) {
+  state.goalsFilter = filter;
+  document.querySelectorAll('#page-goals .tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderGoals();
+}
+
+function toggleGoal(id) {
+  const g = state.goals.find(g=>g.id===id);
+  if (g) {
+    g.done = !g.done;
+    g.progress = g.done ? g.target : Math.round(g.target*0.5);
+    if (g.done && g.type==='Daily') { state.streak = (state.streak||0)+1; }
+    saveState();
+    renderGoals();
+    renderDashboard();
+    showToast(g.done?`🎯 "${g.title}" completed! +1 streak`:`"${g.title}" marked incomplete`, g.done?'success':'info');
+  }
+}
+
+function quickToggleGoal(id) {
+  const g = state.goals.find(g=>g.id===id);
+  if (g) {
+    g.done = !g.done;
+    g.progress = g.done ? g.target : 0;
+    saveState();
+    renderDashboard();
+    showToast(g.done?`✅ Done: ${g.title}`:`Undone: ${g.title}`, g.done?'success':'info');
+  }
+}
+
+function removeGoal(id) {
+  if (!confirm('Delete this goal?')) return;
+  state.goals = state.goals.filter(g=>g.id!==id);
+  saveState();
+  renderGoals();
+  renderDashboard();
+  showToast('Goal deleted', 'info');
+}
+
+function updateGoalProgress() {
+  const id = parseInt(document.getElementById('progressGoalSelect').value);
+  const val = parseFloat(document.getElementById('progressValue').value);
+  if (isNaN(val)) { showToast('Enter a valid progress value', 'warning'); return; }
+  const g = state.goals.find(g=>g.id===id);
+  if (g) {
+    g.progress = Math.min(g.target, val);
+    g.done = g.progress >= g.target;
+    document.getElementById('progressValue').value='';
+    saveState();
+    renderGoals();
+    renderDashboard();
+    showToast(`Progress updated: ${val}/${g.target}`, 'success');
+  }
+}
+
+// ===========================================================
+//  FOCUS TIMER
+// ===========================================================
+let timerInterval = null;
+let timerRemaining = 25*60;
+let timerTotal = 25*60;
+let timerRunning = false;
+let timerSessionsCount = 0;
+let timerMinutesTotal = 0;
+
+function setTimer(min) {
+  if (timerRunning) return;
+  timerRemaining = min*60;
+  timerTotal = min*60;
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerRemaining/60);
+  const s = timerRemaining%60;
+  document.getElementById('timerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  document.getElementById('timerProgress').style.width = (timerRemaining/timerTotal*100)+'%';
+}
+
+function toggleTimer() {
+  if (!timerRunning) {
+    timerRunning = true;
+    document.getElementById('timerBtn').textContent = '⏸ Pause';
+    timerInterval = setInterval(()=>{
+      timerRemaining--;
+      updateTimerDisplay();
+      if (timerRemaining <= 0) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        document.getElementById('timerBtn').textContent = '▶ Start';
+        timerSessionsCount++;
+        timerMinutesTotal += Math.floor(timerTotal/60);
+        document.getElementById('timerSessions').textContent = timerSessionsCount;
+        document.getElementById('timerMinutes').textContent = timerMinutesTotal;
+        // Log session
+        const now = new Date();
+        const logEl = document.getElementById('timerLog');
+        const mins = Math.floor(timerTotal/60);
+        if (logEl.querySelector('.empty-state')) logEl.innerHTML='';
+        const entry = document.createElement('div');
+        entry.className = 'list-item';
+        entry.innerHTML = `<div class="list-item-dot" style="background:var(--cyan);color:var(--cyan)"></div>
+          <div class="list-item-content">
+            <div class="list-item-title">${mins}-min Focus Session</div>
+            <div class="list-item-meta">${now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} · Session #${timerSessionsCount}</div>
+          </div>
+          <span class="badge badge-emerald">✓ Done</span>`;
+        logEl.prepend(entry);
+        showToast(`🎉 Session complete! ${mins} minutes focused.`, 'success');
+        // Update study hours
+        state.weekStudy[6] = parseFloat(((state.weekStudy[6]||0) + mins/60).toFixed(2));
+        saveState();
+      }
+    }, 1000);
+  } else {
+    timerRunning = false;
+    clearInterval(timerInterval);
+    document.getElementById('timerBtn').textContent = '▶ Start';
+  }
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerRemaining = timerTotal;
+  document.getElementById('timerBtn').textContent = '▶ Start';
+  updateTimerDisplay();
+}
+
+// ===========================================================
+//  KEYBOARD SHORTCUTS
+// ===========================================================
+document.addEventListener('keydown', e => {
+  if (e.altKey) {
+    const map = {'1':'dashboard','2':'study','3':'fitness','4':'goals','5':'timer','6':'analytics'};
+    const page = map[e.key];
+    if (page) {
+      const btn = document.querySelector(`.nav-item[onclick*="${page}"]`);
+      navigate(page, btn);
+    }
+  }
+  if (e.key==='Escape') closeSidebar();
+});
+
+// ===========================================================
+//  INIT
+// ===========================================================
+window.addEventListener('load', () => {
+  setTimeout(()=>{
+    document.getElementById('loadingScreen').classList.add('hidden');
+    renderDashboard();
+  }, 1800);
+});
+</script>
+</body>
+</html>
